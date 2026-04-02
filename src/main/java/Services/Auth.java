@@ -2,6 +2,7 @@ package Services;
 
 import Models.Session;
 import Models.User;
+import Screens.AuthScreen;
 import Shared.Utils;
 
 import java.io.IOException;
@@ -131,6 +132,29 @@ public class Auth {
         }
     }
 
+    public Session getSessionById(String id){
+        try {
+            ObjectInputStream inputStream = new ObjectInputStream(Files.newInputStream(
+                    appDataPath.resolve("sessions.dat")
+            ));
+            List<Session> sessions = (List<Session>) inputStream.readObject();
+            inputStream.close();
+            if (sessions == null) return  null;
+
+            List<Session> _sessions = sessions.stream()
+                    .filter(session1 -> Objects.equals(session1.id, id))
+                    .toList();
+            if (_sessions.isEmpty()){
+                return  null;
+            }
+            // now we have a valid session
+            return _sessions.getFirst();
+
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
     private void createNewSessionEntry(String id, String sessStr) {
         try {
             ObjectInputStream inputStream = new ObjectInputStream(
@@ -161,5 +185,57 @@ public class Auth {
        } catch (Exception e) {
            throw new RuntimeException(e);
        }
+    }
+
+    private boolean setCurrentSession(String sessId) {
+        try {
+            Files.writeString(
+                    appDataPath.resolve("ACTIVE_SESSION"),
+                    sessId,
+                    StandardOpenOption.WRITE,
+                    StandardOpenOption.TRUNCATE_EXISTING
+            );
+            return true;
+        }catch(Exception e) {
+            return false;
+        }
+    }
+
+    public User login(String username, String password) throws Exception {
+        // check whether username and password combination exists
+        final List<User> _allUsers = getExistingUsers();
+        if (_allUsers == null) {
+            throw new Exception("Couldn't load user database file");
+        }
+        final List<User> filteredUser = _allUsers.stream().filter(
+                u -> Objects.equals(u.username, username) &&
+                        Objects.equals(u.password, password)
+        ).toList();
+        if (filteredUser.size() < 1) {
+            return null;
+        }
+        User loggedUser = filteredUser.getFirst();
+        // So now we get the session from user id and set the session
+        final Session session = getSessionById(loggedUser.id);
+        if (session == null) return null;
+
+        final boolean sessionWritten = setCurrentSession(session.session);
+        // Now write the current session
+        if (!sessionWritten){
+            return null;
+        }
+        return filteredUser.getFirst();
+
+    }
+
+    public void logout(){
+        // clear the current session
+        try {
+            setCurrentSession("");
+            // Load auth screen
+            AuthScreen.show();
+        }catch (Exception e){
+            throw new RuntimeException(e);
+        }
     }
 }

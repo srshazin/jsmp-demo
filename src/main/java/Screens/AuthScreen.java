@@ -3,6 +3,7 @@ package Screens;
 
 import Models.User;
 import Services.Auth;
+import Shared.Utils;
 
 import java.util.Objects;
 import java.util.UUID;
@@ -26,7 +27,22 @@ public class AuthScreen {
         }
     }
     private static void loginScreen(){
-        IO.println("Presenting login screen");
+        IO.println("Login to your account");
+        String username = IO.readln("Username: ");
+        String password = IO.readln("Password: ");
+
+        try {
+            User loggedUser = new Auth().login(username, password);
+            if (loggedUser == null){
+                Utils.clearConsole();
+                IO.println("Invalid Credentials. Try again!");
+                loginScreen();
+            }
+            Dashboard.show();
+        } catch (Exception e) {
+            IO.println("Error while logging in. Error:  " + e.getMessage());
+            loginScreen();
+        }
     }
     private static void registrationScreen(){
         String username, fullName, email, password;
@@ -48,11 +64,12 @@ public class AuthScreen {
                     email,
                     password
             ));
+            IO.println("User created.");
             Dashboard.show();
             // Call dashboard;
         } catch (Exception e) {
-            e.printStackTrace();
-            IO.println("User reg failed");
+            IO.println("User reg failed. Error: " + e.getMessage());
+            registrationScreen();
         }
 
     }

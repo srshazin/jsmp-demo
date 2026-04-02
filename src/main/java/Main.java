@@ -9,8 +9,5 @@ public class Main {
         // Init Services.AppData
         AppData.init(appDirectory);
         new Init(appDirectory);
-
-
-
     }
 }
